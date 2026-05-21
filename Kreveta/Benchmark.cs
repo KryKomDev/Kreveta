@@ -44,11 +44,13 @@ internal static class Benchmark {
         "2rr2k1/pp3pp1/4b3/n2p3p/1b1P1B1P/1B3PP1/PP3KN1/R1R5 w - - 7 29",    // Carlsen vs. Caruana (WCC 2018)
         "r2r2k1/p4p1p/4pp2/1p6/3bq3/PP1N2P1/Q3PP1P/2R2RK1 w - - 3 23",       // Carlsen vs. Nepomniachtchi (WCC 2021)
         
-        // basic middlegame/endgame positions (from unknown games)
+        // basic middlegame/endgame positions (from various sources)
         "r1b2rk1/1pq2pp1/1npb1B1p/p7/P1BP4/1NN4P/1PQ2PP1/4RRK1 b - - 0 1",
         "3b1r2/1p1q2kp/1n1p1pp1/2rPp1P1/4P2P/P1NQ4/1PRN1P2/1K4R1 w - - 0 1",
+        "r3k2r/Pppp1ppp/1b3nbN/nP2p3/1BP1P3/5N2/Pp1P2PP/R2B1RK1 w kq - 0 1",
         "4r3/1b4p1/p4k1p/1p1p4/3N3P/P2B2P1/1PP2K2/8 b - - 0 1",
         "8/8/2k5/p1b1r2p/PrRR2pP/2K1B1P1/5P2/8 w - - 0 1",
+        "8/3k4/6p1/5n2/3P4/2PK4/8/8 b - - 0 1",
         
         // 5-man positions (from Stockfish)
         "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 1",     // Kc2 - mate
