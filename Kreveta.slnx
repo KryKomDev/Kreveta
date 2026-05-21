@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="Kreveta/Kreveta.csproj" />
+  <Project Path="KrevetaTuning/KrevetaTuning.csproj" />
+</Solution>
