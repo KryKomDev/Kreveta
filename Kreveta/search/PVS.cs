@@ -147,7 +147,7 @@ internal static unsafe class PVS {
     // stores the pv in the transposition table.
     // needs the starting depth in order to store trustworthy entries
     private static void StorePVinTT(Move[] pv, int depth) {
-        Board board  = Game.Board.CloneNoNNUE();
+        Board board  = Game.Board.CloneNoNNUE(-1);
         int   weight = pv.Length + 3;
 
         // loop all pv-nodes

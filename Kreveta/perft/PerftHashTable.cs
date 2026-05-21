@@ -28,12 +28,10 @@ internal static unsafe partial class PerftHashTable {
     // MUST be a power of 2 in order to allow & instead of modulo indexing
     private static int TableSize;
     
-    // perftt.clear is called prior to every perft test,
-    // so we don't have to initialize the table inline
+    // clear is called prior to every perft test, so we don't have to initialize the table inline
     private static Entry* Table;
 
-    // aligned reallocation doesn't work, so we free the
-    // memory and then allocate it once again
+    // aligned reallocation doesn't work, so we free the memory and then allocate it from scratch
     internal static void Clear() {
         if (Table is not null) {
             NativeMemory.AlignedFree(Table);

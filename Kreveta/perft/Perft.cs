@@ -58,8 +58,8 @@ internal static class Perft {
 
             // do the actual node counting search
             ulong nodes = Options.UsePerftHash
-                ? CountNodes      (ref Game.Board, (byte)depth)
-                : CountNodesVirgin(ref Game.Board, (byte)depth);
+                ? CountNodes      (ref Game.Board, (byte)depth, 1)
+                : CountNodesVirgin(ref Game.Board, (byte)depth, 1);
 
             // break the loop
             if (UCI.ShouldAbortSearch)
@@ -109,13 +109,13 @@ internal static class Perft {
             
             // of course, don't go any deeper if the initial depth was 1
             if (depth > 1) {
-                Board child = Game.Board.CloneNoNNUE();
+                Board child = Game.Board.CloneNoNNUE(ply: 0);
                 child.PlayMove(moves[i], false);
             
                 // the recursive search starts here
                 curNodes = Options.UsePerftHash 
-                    ? CountNodes      (ref child, (byte)(depth - 1))
-                    : CountNodesVirgin(ref child, (byte)(depth - 1));
+                    ? CountNodes      (ref child, (byte)(depth - 1), 1)
+                    : CountNodesVirgin(ref child, (byte)(depth - 1), 1);
             }
             
             // print each move after 1 ply and its respective node count
@@ -149,7 +149,7 @@ internal static class Perft {
             PerftHashTable.Clear();
     }
 
-    private static unsafe ulong CountNodes(ref Board board, byte depth) {
+    private static unsafe ulong CountNodes(ref Board board, byte depth, int ply) {
         if (UCI.ShouldAbortSearch)
             return 0UL;
 
@@ -179,7 +179,7 @@ internal static class Perft {
         for (byte i = 0; i < count; i++) {
 
             // create a copy of the board and play the move
-            Board child = board.CloneNoNNUE();
+            Board child = board.CloneNoNNUE(ply);
             child.PlayMove(moves[i], false);
 
             // the move is illegal (we moved to or stayed in check)
@@ -187,7 +187,7 @@ internal static class Perft {
                 continue;
 
             // otherwise continue the search deeper
-            nodes += CountNodes(ref child, depth);
+            nodes += CountNodes(ref child, depth, ply + 1);
         }
 
         // store the new position in perftt
@@ -199,7 +199,7 @@ internal static class Perft {
     // the same method as above, but doesn't use PerftTT (this may be toggled
     // using the UCI options UsePerftHash). a separate function is used to
     // ensure maximum efficiency by avoiding if-checks
-    private static unsafe ulong CountNodesVirgin(ref Board board, byte depth) {
+    private static unsafe ulong CountNodesVirgin(ref Board board, byte depth, int ply) {
         if (UCI.ShouldAbortSearch) return 0UL;
         if (depth == 1)            return (ulong)Movegen.GetLegalMoves(ref board, stackalloc Move[128]);
 
@@ -210,13 +210,13 @@ internal static class Perft {
         int count = Movegen.GetPseudoLegalMoves(ref board, moves);
         
         for (byte i = 0; i < count; i++) {
-            Board child = board.CloneNoNNUE();
+            Board child = board.CloneNoNNUE(ply);
             child.PlayMove(moves[i], false);
             
             if (Check.IsKingChecked(in child, board.SideToMove))
                 continue;
 
-            nodes += CountNodesVirgin(ref child, depth);
+            nodes += CountNodesVirgin(ref child, depth, ply + 1);
         }
 
         return nodes;

@@ -14,6 +14,7 @@ using Kreveta.consts;
 using Kreveta.evaluation;
 using Kreveta.movegen;
 using Kreveta.nnue;
+using Kreveta.polyglot;
 using Kreveta.search.transpositions;
 using Kreveta.uci;
 
@@ -22,7 +23,6 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Kreveta.polyglot;
 
 // ReSharper disable InconsistentNaming
 
@@ -32,10 +32,25 @@ namespace Kreveta;
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal unsafe struct Board {
 
+    // same as what we do with NNUE accumulators, the piece bitboards are pooled.
+    // this avoids repeated heap allocations, which are quite expensive. the pool
+    // is indexed by ply in the search
+    private static readonly ulong[][] BBPool;
+
+    // initialize all arrays in the pool
+#pragma warning disable CA2207
+    static Board() {
+        BBPool = new ulong[128][];
+
+        for (int i = 0; i < 128; i++)
+            BBPool[i] = new ulong[12];
+    }
+#pragma warning restore CA2207
+
     // all pieces are stored in so-called bitboards. each piece-color combination
     // has its own bitboard, where ones represent the individual pieces. movegen
     // and other piece manipulation is significantly faster than using a mailbox
-    internal ulong[] Pieces = new ulong[12];
+    internal ulong[] Pieces;
 
     // additional bitboards storing all pieces of a certain color. this turns out
     // to be slightly faster than ORing six of the bitboards above repetitively
@@ -84,7 +99,7 @@ internal unsafe struct Board {
     // returns the piece at a certain square. this method is really slow,
     // but it's only used in places where it helps readability and doesn't
     // affect overall performance
-    [Pure] internal PType PieceAt(int index) {
+    [Pure] internal readonly PType PieceAt(int index) {
         ulong sq = 1UL << index;
 
         // empty square, return immediately
@@ -389,9 +404,8 @@ internal unsafe struct Board {
     // checks whether a move is legal from this position. this is done by using
     // the reversible XOR-only play move function, which turns out to be faster
     // than cloning this board and playing the move regularly
-    [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool IsMoveLegal(Move move, Color col) {
+    [Pure] internal bool IsMoveLegal(Move move, Color col) {
         PlayReversibleMove(move);
         bool isLegal = !Check.IsKingChecked(in this, col);
         PlayReversibleMove(move);
@@ -399,9 +413,8 @@ internal unsafe struct Board {
         return isLegal;
     }
 
-    [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal int GamePhase() {
+    [Pure] internal readonly int GamePhase() {
         // calculates the current game phase based on piece count and type.
         // the value ranges between 0 and 70, with 0 signifying absolute
         // endgames and 70 being the initial opening state
@@ -415,7 +428,7 @@ internal unsafe struct Board {
     
     // does this side have any pieces except pawns and the king?
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [Pure] internal bool HasNonPawnMaterial(Color col)
+    [Pure] internal readonly bool HasNonPawnMaterial(Color col)
         => ((col == Color.WHITE ? WOccupied : BOccupied) 
             ^ (Pieces[    (int)col * 6] // exclude pawns
              | Pieces[5 + (int)col * 6] // exclude the king
@@ -424,7 +437,7 @@ internal unsafe struct Board {
     // does this side have any pieces that are able to pin another piece
     // to the opposite king? this includes bishops, rooks, and queens
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [Pure] internal bool HasPinningMaterial(Color col)
+    [Pure] internal readonly bool HasPinningMaterial(Color col)
         => (Pieces[2 + (int)col * 6] // bishops
           | Pieces[3 + (int)col * 6] // rooks
           | Pieces[4 + (int)col * 6] // queens
@@ -438,7 +451,12 @@ internal unsafe struct Board {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Pure] internal Board Clone(int childPly = -1) {
         
-        var newPieces = new ulong[12];
+        // try to get a pre-allocated piece bitboard array
+        var newPieces = childPly >= 0
+            ? BBPool[childPly]
+            : new ulong[12];
+
+        // copy the current bitboard data
         Unsafe.CopyBlockUnaligned(
             destination: ref Unsafe.As<ulong, byte>(ref newPieces[0]),
             source:      ref Unsafe.As<ulong, byte>(ref Pieces[0]),
@@ -457,8 +475,11 @@ internal unsafe struct Board {
     // used for Perft, clones the board the same way as the method
     // above, but leaves out accumulator copies and pool lookups
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [Pure] internal Board CloneNoNNUE() {
-        var newPieces = new ulong[12];
+    [Pure] internal readonly Board CloneNoNNUE(int ply) {
+        var newPieces = ply >= 0
+            ? BBPool[ply]
+            : new ulong[12];
+
         Unsafe.CopyBlockUnaligned(
             destination: ref Unsafe.As<ulong, byte>(ref newPieces[0]),
             source:      ref Unsafe.As<ulong, byte>(ref Pieces[0]),
@@ -470,7 +491,7 @@ internal unsafe struct Board {
         };
     }
 
-    internal void Print() {
+    internal readonly void Print() {
         char[] chars = new char[64];
         Array.Fill(chars, ' ');
         
@@ -540,10 +561,10 @@ internal unsafe struct Board {
     // be infered from the method's name. the FEN is a superior notation, allowing
     // us to encode any position quite easily. for a more detailed explanation, take
     // a look into Game.cs, where FEN strings are described in-depth
-    internal string FEN() {
+    internal readonly string FEN() {
         var fen = new StringBuilder();
 
-        int   curEmpty = 0;
+        int curEmpty = 0;
         for (int i = 0; i < 64; i++) {
             PType piece;
             
