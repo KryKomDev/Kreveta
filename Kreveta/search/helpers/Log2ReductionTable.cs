@@ -34,8 +34,8 @@ internal sealed class Log2ReductionTable {
         get {
             Assert.True(depth > 0 && moveIndex > 0, "zero or less values in log2 reduction table");
             
-            int r = _log2[depth] * _log2[moveIndex] / 5;
-            return r - 512 * delta / PVS.RootDelta;
+            int r = _log2[depth] * _log2[moveIndex] * 20 / 100;
+            return r - 495 * delta / PVS.RootDelta;
         }
     }
 }

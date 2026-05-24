@@ -171,32 +171,32 @@ internal static unsafe partial class TranspositionTable {
         var entry = new Entry {
             Hash     = hash,
             Depth    = (sbyte)depth,
-            Flags    = 0,
             BestMove = bestMove
         };
 
-        // idea from MinimalChess: when a position is evaluated "mate in X", the X plies are
-        // relative to the root node. when we store such position, though, we have to subtract
-        // the current ply to get the actual X plies relative to the position, not root.
+        if (score >= beta) {
+            entry.Flags = ScoreType.LOWER_BOUND;
+            entry.Score = (short)beta;
+
+        } else if (score <= alpha) {
+            entry.Flags = ScoreType.UPPER_BOUND;
+            entry.Score = (short)alpha;
+
+        } else {
+            entry.Flags = ScoreType.SCORE_EXACT;
+            entry.Score = score;
+        }
+        
+        // when a position is evaluated "mate in X", the X plies are relative to the root.
+        // when we store such position, though, we have to subtract the current ply to get
+        // the actual Y plies relative to the current position, not the root.
         if (Score.IsMate(score)) {
 
             // since a mate score is a number of plies subtracted from a base, we don't
-            // actually subtract the current ply, we add it. the idea is, however, the same
-            entry.Score  = (short)(score + Math.Sign(score) * ply);
-            entry.Flags |= ScoreType.SCORE_EXACT;
-        }
-
-        else if (score >= beta) {
-            entry.Flags |= ScoreType.LOWER_BOUND;
-            entry.Score  = (short)beta;
-
-        } else if (score <= alpha) {
-            entry.Flags |= ScoreType.UPPER_BOUND;
-            entry.Score  = (short)alpha;
-
-        } else {
-            entry.Flags |= ScoreType.SCORE_EXACT;
-            entry.Score  = score;
+            // actually subtract the current ply, we add it. the idea is, though, the same
+            entry.Score = (short)(
+                score + ply * Math.Sign(score)
+            );
         }
 
         // store the new entry or overwrite the old one if allowed
@@ -235,7 +235,7 @@ internal static unsafe partial class TranspositionTable {
         // described above - we add the current ply to the "mate in X"
         // to make it relative to the root node once again
         if (Score.IsMate(ttScore))
-            ttScore -= (short)(Math.Sign(ttScore) * ply);
+            ttScore -= (short)(ply * Math.Sign(ttScore));
         
         TTHits++;
         return true;
