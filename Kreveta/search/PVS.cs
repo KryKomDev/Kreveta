@@ -663,7 +663,7 @@ internal static unsafe class PVS {
             // base reduction of 1 ply; can be turned into an extension
             int curDepth  = ss.Depth - 1;
             int r         = _reductionTable[ss.Depth, expandedNodes, delta];
-            int reduction = (r > 2850 ? 1 : 0) + (r > 4096 ? 1 : 0);
+            int reduction = (r > 2655 ? 1 : 0) + (r > 4013 ? 1 : 0);
             
             /*
              * 9. FUTILITY PRUNING FOR CAPTURES
@@ -794,7 +794,7 @@ internal static unsafe class PVS {
                 ss.ExcludedMove = ttMove;
                 if (!ss.Ignore3Fold) ThreeFold.Remove(child.Hash);
 
-                int depth = ss.Depth * 2 / 5;
+                int depth = ss.Depth * 36 / 100;
                 
                 // do the reduced, null-window search
                 short singScore = Search<NonPVNode>(
@@ -895,17 +895,15 @@ internal static unsafe class PVS {
             // if the LMR search fails low as expected, the move is pruned
             if (!skipLMR) {
 
-                // the base reduction is based on move index
-                //int R = 3 + (expandedNodes > moveCount / 3 ? 1 : 0);
-                
-                // TODO - IDEAS #2, #3, #4, #5
+                // while we try to build the LMR reduction on the already existing
+                // log reduction value, we must ensure the reduction isn't too low
                 int R = Math.Max(
                     3 + (expandedNodes > moveCount / 3 ? 1 : 0),
-                    r / 600
+                    r / 539
                 );
                 
                 // moves with history scores below a certain threshold are reduced more
-                if (curScore < -379 - 9 * RootDepth)
+                if (curScore < -319 - 9 * RootDepth)
                     R++;
 
                 // reduce less when improving, but when not improving, only reduce more when SEE is negative
