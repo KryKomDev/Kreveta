@@ -112,7 +112,9 @@ Starts searching the best move from the current position. None of the arguments 
 
 For user analysis, `go depth <d>` indicates how many moves to search ahead. Using `go movetime <t>` starts a search with a specified time budget. `go nodes <n>` may also be used to set an upper limit of the number of positions to be searched. To evaluate a single move or a selection of moves, use `go searchmoves <m1 m2 ...>`. The command `go infinite` starts an infinite search, ideal for long analysis.
 
-When playing a full game, other arguments may also be provided to specify the time control, such as `wtime <t>` and `btime <t>` indicating the time left of either side, `winc <t>` and `binc <t>` denoting the time increment or `movestogo <n>` for restarting time controls.
+When playing a full game, other arguments may also be provided to specify the time control, such as `wtime <t>` and `btime <t>` indicating the time left of either side, `winc <t>` and `binc <t>` denoting the per-move time increment or `movestogo <n>` for time controls with periodically restarting clocks.
+
+The engine progressively reports various statistics and information during the search, such as time spent so far, number of searched nodes, the principal variation (PV), etc. Reports are printed once every search iteration, though per-move reports may be used in later iterations.
 
 ### `stop`
 

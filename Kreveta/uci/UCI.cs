@@ -200,7 +200,7 @@ internal static partial class UCI {
     }
 
     // the "position ..." command sets a position, which the engine will be searching
-    // soon or anytime in the future. it by now means starts the search itself, though
+    // soon or anytime in the future. by no means does it start the search itself, though
     private static void CmdPosition(ReadOnlySpan<string> tokens) {
 
         // ensure any running search is stopped, as very bad stuff happens when the root
