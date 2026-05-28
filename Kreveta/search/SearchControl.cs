@@ -375,10 +375,13 @@ internal static class SearchControl {
         // play along the principal variation.
         // the correct position is needed for correct tt lookups
         foreach (Move move in pv) {
-            yield return move;
             board.PlayMove(move, false);
-            
+
             remove.Add(board.Hash);
+            yield return move;
+
+            // if 3-fold repetition occurs in the actual PV, we don't do
+            // anything, so occasionally illegal moves might be printed
             if (ThreeFold.AddAndCheck(board.Hash))
                 goto clearThreeFold;
         }
@@ -394,6 +397,9 @@ internal static class SearchControl {
                 goto clearThreeFold;
                 
             board.PlayMove(ttMove, false);
+
+            // return the move prior to checking 3-fold repetition, as this move is still legal
+            yield return ttMove;
             
             // picking up moves from TT sometimes creates infinite loops, that would actually end in a draw.
             // ThreeFold is used here to make sure the PV is actually legal, so if a draw is encountered,
@@ -401,8 +407,6 @@ internal static class SearchControl {
             remove.Add(board.Hash);
             if (ThreeFold.AddAndCheck(board.Hash))
                 goto clearThreeFold;
-            
-            yield return ttMove;
         }
         
         // clear the threefold for next search iteration

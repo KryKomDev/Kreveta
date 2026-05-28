@@ -202,6 +202,12 @@ internal static partial class UCI {
     // the "position ..." command sets a position, which the engine will be searching
     // soon or anytime in the future. it by now means starts the search itself, though
     private static void CmdPosition(ReadOnlySpan<string> tokens) {
+
+        // ensure any running search is stopped, as very bad stuff happens when the root
+        // is overwritten during search. in one case the engine found a mate in the start
+        // position, which to this time i have no idea how
+        StopSearch(verbose: false);
+
         if (tokens.Length <= 1) {
             Log("Missing arguments - startpos/fen must be specified");
             return;
@@ -271,6 +277,7 @@ internal static partial class UCI {
     }
 
     internal static void CmdGo(ReadOnlySpan<string> tokens, bool bench = false) {
+
         // abort the currently running search first in order to
         // run a new one, since there is a single search thread.
         StopSearch(verbose: false);
