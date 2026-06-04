@@ -174,7 +174,7 @@ internal static partial class UCI {
 
                 // print all legal moves
                 case "moves": {
-                    PrintLegalMoves();
+                    PrintLegalMoves(tokens);
                     break;
                 }
 
@@ -188,7 +188,7 @@ internal static partial class UCI {
                     Log($"\n{Consts.License}\n");
                     break;
                 
-                case "help" or "-help" or "--help" or "h" or "-h" or "--h":
+                case "help" or "-help" or "--help" or "h" or "-h" or "--h" or "?" or "-?" or "--?" or "/?" or "/h" or "/help":
                     Log("Kreveta is an open-source chess engine, released under the MIT license. Please read the full documentation here: https://github.com/ZlomenyMesic/Kreveta");
                     break;
 
@@ -406,32 +406,56 @@ internal static partial class UCI {
     }
 
     // on command 'moves' all legal moves are printed, sorted by piece
-    private static void PrintLegalMoves() {
+    private static void PrintLegalMoves(ReadOnlySpan<string> tokens) {
         Span<Move> legal  = stackalloc Move[Consts.MoveBufferSize];
         int        count  = Movegen.GetLegalMoves(ref Game.Board, legal);
         var        output = new StringBuilder();
 
-        output.Append($"Total legal moves: {count}\n");
+        // if we are provided a square, only print moves that start from that square
+        if (tokens.Length >= 2 && tokens[1].Length == 2
+            && char.IsLetter(tokens[1][0]) && char.IsDigit(tokens[1][1])) {
 
-        // sort the moves by piece
-        for (int i = 0; i < 6; i++) {
-#pragma warning disable CS8509
-            output.Append(i switch {
-                0 => "\nPawn:  ",
-                1 => "\nKnight:",
-                2 => "\nBishop:",
-                3 => "\nRook:  ",
-                4 => "\nQueen: ",
-                5 => "\nKing:  "
-            });
-#pragma warning restore CS8509
-            
-            // add only the moves that are this piece
+            string m = tokens[1] + "a1";
+
+            // a little hack to reuse square/move legality checking
+            if (!Move.IsCorrectFormat(m)) {
+                Log("Invalid square format");
+                return;
+            }
+
+            output.Append($"Legal moves for {tokens[1]}:");
+            int sq = m.ToMove(in Game.Board).Start;
+
+            // only add moves that start from this exact square
             for (int j = 0; j < count; j++)
-                if (legal[j].Piece == (PType)i)
+                if (legal[j].Start == sq)
                     output.Append($" {legal[j].ToLAN()}");
         }
-        
+
+        // otherwise show all legal moves available from this position
+        else {
+            output.Append($"Total legal moves: {count}\n");
+
+            // sort the moves by piece
+            for (int i = 0; i < 6; i++) {
+#pragma warning disable CS8509
+                output.Append(i switch {
+                    0 => "\nPawn:  ",
+                    1 => "\nKnight:",
+                    2 => "\nBishop:",
+                    3 => "\nRook:  ",
+                    4 => "\nQueen: ",
+                    5 => "\nKing:  "
+                });
+#pragma warning restore CS8509
+
+                // only add moves that are this piece type
+                for (int j = 0; j < count; j++)
+                    if (legal[j].Piece == (PType)i)
+                        output.Append($" {legal[j].ToLAN()}");
+            }
+        }
+
         Log($"{output}\n");
     }
 }
